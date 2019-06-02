@@ -209,14 +209,26 @@ class CompositeType(UserDefinedType, SchemaType):
                 return None
             processed_value = []
             for i, column in enumerate(self.columns):
+                # null check
+                val = None
+                try:
+                    # check dictionary insert / update
+                    if type(value) == dict:
+                        val = value[column.name]
+                    else:
+                        val = value[i]
+                except KeyError as e:
+                    if not column.nullable:
+                        raise e
+
                 if isinstance(column.type, TypeDecorator):
                     processed_value.append(
                         column.type.process_bind_param(
-                            value[i], dialect
+                            val, dialect
                         )
                     )
                 else:
-                    processed_value.append(value[i])
+                    processed_value.append(val)
             return self.type_cls(*processed_value)
         return process
 
